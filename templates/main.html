@@ -6,17 +6,29 @@
 
 {% block main %}
     <h1>Hello {{name}}, ready to trade ?</h1>
+    <h5>You curentrly have {{money}}€ left on your account but you have a grand total off {{totalbenefice}}</h5>
+
     <table>
         <thead>
             <tr>
-                <th>The table header</th>
+                <th> Your stocks </th>
+                <th> Shares </th>
+                <th> Current Price </th>
+                <th> Holding </th>
+                <th> Benefits </th>
             </tr>
         </thead>
         <tbody>
+            {% for number in range(nbr) %}
             <tr>
-                <td>The table body</td>
-                <td>with two columns</td>
+                <td>{{ticker[number]}}</td>
+                <td>{{shares[number]}}</td>
+                <td>{{currentpriceticker[number]}}</td>
+                <td>{{invested[number]}}</td>
+                <td>{{benefice[number]}}</td>
+            {% endfor %}
             </tr>
         </tbody>
     </table>
+
 {% endblock %}

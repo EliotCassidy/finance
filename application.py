@@ -46,8 +46,27 @@ if not os.environ.get("API_KEY"):
 @login_required
 def index():
     """Show portfolio of stocks"""
+    stocks = db.execute("SELECT ticker, SUM(spent), SUM(number_stocks) FROM purchases WHERE transaction_id = ? GROUP BY ticker", session["user_id"])
+    tickers = []
+    total_price = []
+    owned = []
+    for i in range(len(stocks)):
+        tickers.append(stocks[i]["ticker"])
+        total_price.append(stocks[i]["SUM(spent)"])
+        owned.append(stocks[i]["SUM(number_stocks)"])
+    currentvalue = []
+    for value in tickers:
+        jsonfile = lookup(value)
+        currentvalue.append(jsonfile["price"])
+    benefice = []
+    for i in range(len(currentvalue)):
+        result = (owned[i] * currentvalue[i]) - total_price[i]
+        benefice.append(result)
+    exes = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
+    money = exes[0]["cash"]
+    totalbenefice = sum(benefice) + money + sum(total_price)
     name = db.execute("SELECT username FROM users WHERE id = ?", session["user_id"])
-    return render_template("main.html", name = name[0]["username"])
+    return render_template("main.html", name = name[0]["username"], money = usd(money), nbr = len(tickers), ticker = tickers, invested = total_price, shares = owned, currentpriceticker = currentvalue, benefice = benefice, totalbenefice = usd(totalbenefice))
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -70,7 +89,7 @@ def buy():
         # Updates users cash
         db.execute("UPDATE users SET cash = ? WHERE id = ?", current_cash - price_to_pay, session["user_id"])
         # TODO: Create UNIQUE sql
-        db.execute("INSERT INTO purchases (transaction_id, ticker, price, time, number_stocks) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)", session["user_id"], jsonfile["symbol"], price_of_stock, int(shares))
+        db.execute("INSERT INTO purchases (transaction_id, ticker, price, time, number_stocks, spent) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)", session["user_id"], jsonfile["symbol"], price_of_stock, int(shares), price_of_stock * int(shares))
         return redirect("/")
     else:
         return render_template("buy.html")

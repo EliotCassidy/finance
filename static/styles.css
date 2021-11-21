@@ -45,3 +45,16 @@ main img
     /* Constrain images on small screens */
     max-width: 100%;
 }
+
+table,
+td {
+    justify-content: center;
+    border: 1px solid #333;
+}
+
+thead,
+tfoot {
+    justify-content: center;
+    background-color: #333;
+    color: #fff;
+}
