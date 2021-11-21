@@ -46,7 +46,8 @@ if not os.environ.get("API_KEY"):
 @login_required
 def index():
     """Show portfolio of stocks"""
-    return apology("TODO")
+    name = db.execute("SELECT username FROM users WHERE id = ?", session["user_id"])
+    return render_template("main.html", name = name[0]["username"])
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -63,10 +64,14 @@ def buy():
         price_of_stock = float(jsonfile["price"])
         price_to_pay = price_of_stock * int(shares)
         cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
-        cash_left = cash[0]["cash"]
-        if cash_left < price_to_pay:
+        current_cash = cash[0]["cash"]
+        if current_cash < price_to_pay:
             return apology("Not enought money")
-        return render_template("quoted.html", name = jsonfile["name"], ticker = jsonfile["symbol"], price = usd(jsonfile["price"]))
+        # Updates users cash
+        db.execute("UPDATE users SET cash = ? WHERE id = ?", current_cash - price_to_pay, session["user_id"])
+        # TODO: Create UNIQUE sql
+        db.execute("INSERT INTO purchases (transaction_id, ticker, price, time, number_stocks) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)", session["user_id"], jsonfile["symbol"], price_of_stock, int(shares))
+        return redirect("/")
     else:
         return render_template("buy.html")
 
@@ -146,8 +151,9 @@ def register():
         # No username
         if not request.form.get("username"):
             return apology("must provide username", 403)
-            # Not unique username
-        if not db.execute("SELECT COUNT(username) FROM users WHERE username = ?", request.form.get("username")):
+        # Not unique username
+        usernamecheck = db.execute("SELECT COUNT(username) FROM users WHERE username = ?", request.form.get("username"))
+        if usernamecheck[0]["COUNT(username)"] != 0:
             return apology("must provide unique username", 403)
         # Not 2 passwords
         if not request.form.get("password") or not request.form.get("confirmation"):
@@ -158,7 +164,6 @@ def register():
         
         # Add input to database
         db.execute("INSERT INTO users (username, hash) VALUES (?, ?)", request.form.get("username"), generate_password_hash(request.form.get("password")))
-
         return redirect("/")
     else:
         return render_template("register.html")
