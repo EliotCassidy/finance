@@ -53,7 +53,22 @@ def index():
 @login_required
 def buy():
     """Buy shares of stock"""
-    return apology("TODO")
+    if request.method == "POST":
+        jsonfile = lookup(request.form.get("symbol"))
+        shares = request.form.get("shares")
+        if jsonfile == None:
+            return apology("Wrong ticker")
+        if not shares.isdigit() or int(shares) == 0:
+            return apology("Invalid number of shares")
+        price_of_stock = float(jsonfile["price"])
+        price_to_pay = price_of_stock * int(shares)
+        cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
+        cash_left = cash[0]["cash"]
+        if cash_left < price_to_pay:
+            return apology("Not enought money")
+        return render_template("quoted.html", name = jsonfile["name"], ticker = jsonfile["symbol"], price = usd(jsonfile["price"]))
+    else:
+        return render_template("buy.html")
 
 
 @app.route("/history")
@@ -116,6 +131,8 @@ def quote():
     """Get stock quote."""
     if request.method == "POST":
         jsonfile = lookup(request.form.get("symbol"))
+        if jsonfile == None:
+            return apology("Wrong ticker")
         return render_template("quoted.html", name = jsonfile["name"], ticker = jsonfile["symbol"], price = usd(jsonfile["price"]))
     else:
         return render_template("quote.html")
